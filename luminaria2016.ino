@@ -3,7 +3,11 @@
 #include "luminaria2016.h"
 
 RTC_DS3231 rtc;
-int dailymin, v_azul, v_amarelo;
+int dailymin, v_azul, v_amarelo, amarelo, azul;
+int itr = 0, brightness, last_brightness = 0, current_brightness = 0;
+
+int bright_ref[] = {
+  0, 25, 51, 77, 103, 129, 165, 191, 217, 255};
 
 int irqpin = 2;  // Digital 2
 boolean touchStates[12]; //to keep track of the previous touch states
@@ -13,10 +17,34 @@ int Bfraco = 6;
 int Aforte = 5;
 int Bforte = 3;
 
-int waveform[] = { 1, 2, 3, 4, 5};
 // senoid 1440
-/*
 int waveform[] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,2,2,2,2,
+  2,2,2,2,2,2,3,3,3,3,3,3,3,3,
+  4,4,4,4,4,4,4,4,5,5,5,5,5,5,
+  6,6,6,6,6,6,7,7,7,7,7,8,8,8,
+  8,8,8,9,9,9,9,9,10,10,10,10,11,11,
+  11,11,11,12,12,12,12,13,13,13,13,14,14,14,
+  14,15,15,15,15,16,16,16,17,17,17,17,18,18,
+  18,18,19,19,19,20,20,20,21,21,21,21,22,22,
+  22,23,23,23,24,24,24,25,25,25,26,26,26,27,
+  27,27,28,28,28,29,29,29,30,30,31,31,31,32,
+  32,32,33,33,33,34,34,35,35,35,36,36,37,37,
+  37,38,38,39,39,39,40,40,41,41,41,42,42,43,
+  43,43,44,44,45,45,46,46,46,47,47,48,48,49,
+  49,49,50,50,51,51,52,52,53,53,53,54,54,55,
+  55,56,56,57,57,58,58,59,59,59,60,60,61,61,
+  62,62,63,63,64,64,65,65,66,66,67,67,68,68,
+  69,69,70,70,71,71,72,72,73,73,74,74,75,75,
+  76,76,77,77,78,78,79,79,80,80,81,81,82,82,
+  83,83,84,84,85,85,86,87,87,88,88,89,89,90,
+  90,91,91,92,92,93,93,94,95,95,96,96,97,97,
+  98,98,99,99,100,100,101,102,102,103,103,104,104,105,
+  105,106,106,107,108,108,109,109,110,110,111,111,112,113,
+  113,114,114,115,115,116,116,117,117,118,119,119,120,120,
+  121,121,122,122,123,124,124,125,125,126,126,127,128,
   128,128,129,129,130,130,131,131,132,133,133,134,134,135,
   135,136,136,137,138,138,139,139,140,140,141,141,142,142,
   143,144,144,145,145,146,146,147,147,148,149,149,150,150,
@@ -94,33 +122,8 @@ int waveform[] = {
   2,2,2,2,2,2,2,2,2,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,0,0,0,0,
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,2,2,2,2,
-  2,2,2,2,2,2,3,3,3,3,3,3,3,3,
-  4,4,4,4,4,4,4,4,5,5,5,5,5,5,
-  6,6,6,6,6,6,7,7,7,7,7,8,8,8,
-  8,8,8,9,9,9,9,9,10,10,10,10,11,11,
-  11,11,11,12,12,12,12,13,13,13,13,14,14,14,
-  14,15,15,15,15,16,16,16,17,17,17,17,18,18,
-  18,18,19,19,19,20,20,20,21,21,21,21,22,22,
-  22,23,23,23,24,24,24,25,25,25,26,26,26,27,
-  27,27,28,28,28,29,29,29,30,30,31,31,31,32,
-  32,32,33,33,33,34,34,35,35,35,36,36,37,37,
-  37,38,38,39,39,39,40,40,41,41,41,42,42,43,
-  43,43,44,44,45,45,46,46,46,47,47,48,48,49,
-  49,49,50,50,51,51,52,52,53,53,53,54,54,55,
-  55,56,56,57,57,58,58,59,59,59,60,60,61,61,
-  62,62,63,63,64,64,65,65,66,66,67,67,68,68,
-  69,69,70,70,71,71,72,72,73,73,74,74,75,75,
-  76,76,77,77,78,78,79,79,80,80,81,81,82,82,
-  83,83,84,84,85,85,86,87,87,88,88,89,89,90,
-  90,91,91,92,92,93,93,94,95,95,96,96,97,97,
-  98,98,99,99,100,100,101,102,102,103,103,104,104,105,
-  105,106,106,107,108,108,109,109,110,110,111,111,112,113,
-  113,114,114,115,115,116,116,117,117,118,119,119,120,120,
-  121,121,122,122,123,124,124,125,125,126,126,127,128};
-*/
+};
+
 void setup () {
 
   Serial.begin(9600);
@@ -128,7 +131,6 @@ void setup () {
 
   pinMode(irqpin, INPUT);
   digitalWrite(irqpin, HIGH); //enable pullup resistor
-
   Wire.begin();
   mpr121_setup();
 
@@ -136,9 +138,6 @@ void setup () {
     Serial.println("Couldn't find RTC");
     while (1);
   }
-  
-  Serial.println("deu boa");
-Serial.println(waveform[3]);
 
   if (rtc.lostPower()) {
     Serial.println("RTC lost power, lets set the time!");
@@ -149,45 +148,74 @@ Serial.println(waveform[3]);
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   }
 
-  
+
 
 }
 
 void loop () {
-  //    readTouchInputs();
 
-Serial.print("ola: ");
-Serial.print(waveform[3], DEC);
-  
-
+  // pergunta a hora do rtc e gera um valor de cor baseado no minuto do dia
   DateTime now = rtc.now();
-  dailymin = now.minute() * now.second();
-//  v_azul = waveform[dailymin];
-//  v_amarelo = 256 - v_azul;
+  dailymin = now.minute() + now.hour() * 60;
+  v_azul = waveform[dailymin];
+  v_amarelo = 256 - v_azul;
+
+  // le o sensor capacitivo e devolve um valor de intensidade
+  current_brightness = readTouchInputs(last_brightness);
+  brightness = last_brightness*(255-itr)/255 + current_brightness*itr/255;
+
+  if (itr < 255){
+    itr++;
+  }
+
+  azul = (v_azul * brightness) / v_azul;
+  amarelo = (v_amarelo * brightness) / v_amarelo;
+
+
+  analogWrite(Afraco = 9, amarelo);
+  analogWrite(Bfraco = 6, azul);
+  analogWrite(Aforte = 5, amarelo);
+  analogWrite(Bforte = 3, azul);
 
 
   Serial.print("Hora: ");
-  Serial.print(now.minute(), DEC);
+  Serial.print(now.hour(), DEC);
   Serial.print(":");
-  Serial.print(now.second(), DEC);
-  Serial.print("\t Produto horaminuto: ");
+  Serial.print(now.minute(), DEC);
+  Serial.print("\t minuto diario: ");
   Serial.println(dailymin, DEC);
   Serial.print("waveform: ");
   Serial.println(waveform[dailymin], DEC);
-  
   Serial.print("v_azul = ");
   Serial.println(v_azul, DEC);
   Serial.print("v_amarelo = ");
   Serial.println(v_amarelo, DEC);
 
+  Serial.print("itr = ");
+  Serial.println(itr, DEC);
+  Serial.print("brightness = ");
+  Serial.println(brightness, DEC);
+  Serial.print("current_brightness = ");
+  Serial.println(current_brightness, DEC);
+  Serial.print("last_brightness = ");
+  Serial.println(last_brightness, DEC);
+
+  Serial.print("azul = ");
+  Serial.println(azul, DEC);
+  Serial.print("amarelo = ");
+  Serial.println(amarelo, DEC);
   Serial.println();
-  delay(1000);
+  Serial.println("--------------------------------------------------------");
+
+
+
+  delay(500);
 }
 
 
-void readTouchInputs(){
+int readTouchInputs(int last_brightness){
   if(!checkInterrupt()){
-
+    int local_bright = last_brightness;
     //read the touch state from the MPR121
     Wire.requestFrom(0x5A,2); 
 
@@ -205,6 +233,9 @@ void readTouchInputs(){
           Serial.print("pin ");
           Serial.print(i);
           Serial.println(" was just touched");
+          itr = 0;
+          last_brightness = current_brightness;
+          local_bright = bright_ref[i];
 
         }
         else if(touchStates[i] == 1){
@@ -226,6 +257,7 @@ void readTouchInputs(){
       }
 
     }
+    return local_bright;
 
   }
 }
@@ -315,6 +347,9 @@ void set_register(int address, unsigned char r, unsigned char v){
   Wire.write(v);
   Wire.endTransmission();
 }
+
+
+
 
 
 
